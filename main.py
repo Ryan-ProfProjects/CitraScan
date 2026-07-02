@@ -1,24 +1,20 @@
 import torch
-import numpy as np
-import pandas as pd
-import cv2 # opencv
 import glob
-import matplotlib.pyplot as plt
+import cv2
+import numpy as np
 
-pths = glob.glob("lemon_healthy/*.JPG")
-himgs = []
+pths = glob.glob('seed_data/img_*.jpg')
+imgs = []
+bimgs = []
 for pth in pths:
-    himgs.append(cv2.cvtColor(cv2.imread(pth), cv2.COLOR_BGR2RGB).reshape(1440, 1080, 3))
-himgs = np.stack(himgs)
-print(himgs.shape)
-
-hlbpths = glob.glob("lemon_HLB/*.JPG")
-hlbimgs = []
-for pth in hlbpths:
-    hlbimgs.append(cv2.cvtColor(cv2.imread(pth), cv2.COLOR_BGR2LAB).reshape(1440, 1080, 3))
-hlbimgs = np.stack(hlbimgs)
-print(hlbimgs.shape)
-
-plt.imshow(hlbimgs[100])
-plt.show()
-
+    img = cv2.imread(pth, cv2.IMREAD_GRAYSCALE)
+    laplacian = cv2.Laplacian(img, cv2.CV_64F)
+    lvar = laplacian.var()
+    if lvar < 150:
+        bimgs.append(img)
+    if lvar > 150:
+        imgs.append(img)
+        
+bimgs = torch.Tensor(np.stack(bimgs))
+imgs = torch.Tensor(np.stack(imgs))
+print(imgs.shape, bimgs.shape)
