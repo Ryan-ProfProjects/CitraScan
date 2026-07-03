@@ -21,11 +21,29 @@ This results in Laplacian kernels that compute differences in local patches. How
 
 $\frac{\partial^2 I}{\partial x^2} \approx (I(x+1,y) - I(x, y)) - (I(x,y) - I(x-1,y))$
 
-$\frac{\partial^2 I}{\partial x^2} \approx I(x+1,y) - 2I(x, y)) - I(x-1,y)$
+$\frac{\partial^2 I}{\partial x^2} \approx I(x+1,y) - 2I(x, y) + I(x-1,y)$
 
 The entire Laplacian is across both the x and y directions (width/height) of the image:
 
 $\nabla^2 I = \frac{\partial^2 I}{\partial^2 x^2} + \frac{\partial^2 I}{\partial^2 y^2}$
+
+$\nabla^2 I \approx I(x+1,y) - 2I(x, y) + I(x-1,y) + I(x,y+1) - 2I(x, y) + I(x,y-1)$
+
+$\nabla^2 I \approx I(x+1,y) - 4I(x, y) + I(x-1,y) + I(x,y+1) + I(x,y-1)$
+
+Since each location on an image can be represented as a vector, the Laplacian can be written as a linear combination by exposing the coefficients:
+
+$\nabla^2 I \approx (1) \cdot I(x+1,y) - (4) \cdot I(x, y) + (1) \cdot I(x-1,y) + (1) \cdot I(x,y+1) + (1) \cdot I(x,y-1)$
+
+Since the Lacplacian operation is element wise, each coefficient scales the coordinate of the image, thus we can construct the following kernel matrix by mapping positions:
+
+$$
+\begin{bmatrix}
+0 & 1 & 0 \\
+1 & -4 & 1 \\
+0 & 1 & 0
+\end{bmatrix}
+$$
 
 The mean Laplacian score of an image with $N$ total pixels can be defined as $\mu_{\Delta}$:
 
@@ -45,11 +63,17 @@ $S_n = \frac{\sigma^2}{\sqrt{N}}$
 
 ### Graininess
 
-Budget phones don't have grainier phones just because the camera is worse, but also because its processor is less efficient. Digital images are fundamentally digitzed signals. Incoming photons in the analog domain strike the camera sensor, exciting electrons in precise locations that map to physical reality. These flowing electrons are an electrical current that an Analog-to-Digital (ADC) translates into discrete pixels. Cheap proessors have to give up more excess thermal energy to perform tasks, which transfers to the electrons in the camera sensor's scilicon substrate, increasing their energy level in arbitrary locations independent of actual photon absorption, resulting in the electrical noise you see in photos.
+Budget phones don't have grainier phones just because the camera is worse, but also because its processor is less efficient. Digital images are fundamentally digitzed signals. Incoming photons in the analog domain strike the camera sensor, exciting electrons in precise locations that map to physical reality. These flowing electrons are an electrical current that an Analog-to-Digital (ADC) translates into discrete pixels. Cheap processors have to give up more excess thermal energy to perform tasks, which transfers to the electrons in the camera sensor's scilicon substrate, increasing their energy level in arbitrary locations independent of actual photon absorption, resulting in the electrical noise you see in photos.
+
+Because this noise can create complicated pixel patterns in an image that are insignificant in the context of the photo (like the leaf lesion), they are areas of high variance. This can make using Laplacian variance quite catastrophic because there are these smooth transitions between small gradients that can quickly accumulate and inflate the score. This is why the Laplacian variance is computed after a highly smoothed version of the image is subtracted from the original, giving us a grain metric that is calculated on the pure fine noise.
+
+The blurred image is produced through a convolution with a Guassian kernel that has entries sampled out of a choosen Guassian distribution. 
 
 ### Governing Lighting Conditions
 
 Low-end budget sensors have a narrow dynamic range. This means that in bright sunlight, highlights are clipped to pure white pixels (255), and in shadows, details are crushed into pure black (0). When an image is clipped like this, the transitions are abrupt/sharp and local pixels become more uniform. This increased unfiromity results in almost no difference between coordinates, causing certain localized gradients to vanish and lower the Laplacian variance score. High-end flagship sensors use multi-frame High Dynamic Range (HDR) processing, which takes several photos at different exposure values. Short exposures can capture the textures of bright highlights without oversaturating them and medium or long exposures can capture shadows and fine details within darker regions by oversaturing the entire image. These RAW frames are not stacked directly due to temporal differences. First, the medium-exposure image is chosen as the reference frame and a predetermined filter slides over pixel patches and calculates a mathematical similarity score with each frame across the temporal dimension, selecting which parts of that frame should overlap with the reference frame. This results in a highly engineered output image that contains relatively sharp shadows and highlights with minimal noise. Now the transitions between pixels become much more continuous, increasing the Laplacian variance. 
+
+To eliminate a possible performance delta between device tiers and prevent the diagnostic model(s) from overfitting to hardware noise, the Fairness Governor implements an unsupervised exposure index EI. This quantifies how severely localizing lighting conditions and hardware limitations corrupted the incoming signal. If the model is trained mainly on pristine images with smooth gradients, it struggles to generalize to lower-quality images taken on budget devices because it hasn't learned to extract patterns with abrupt transitions or excess noise. Conversely, when the model does encounter more low-qaulity images, it risks overfitting to hardware artifacts. A neural network with high capacity can easily learn the highly-specific noise pattern instead of the actual geometric structures of plant lesions. The EI is a fusion of a over/under exposure ratio and luminance entropy.
 
 RGB color channels do not account for luminance, so a luminance-focused color space like LAB, in which the L channel respresents pure brightness or luminance independent of color, is used. Let $L(x,y) \in [0, 255]$ be the luminance value of a pixel. An exposure histogram $H$ can be constructed, which counts the frequency of each brightness level across all N pixels:
 
@@ -71,9 +95,16 @@ $E = -\sum_{b=0}^{255} p(b)log_2p(b)$
 
 where $p(b) = \frac{H(b)}{N}$ is the probability of a pixel having brightness $b$. 
 
-To eliminate a possible performance delta between device tiers and prevent the diagnostic model(s) from overfitting to hardware noise, the Fairness Governor implements an unsupervised Exposure Index (EI). This qauntifies how severely localizing lighting conditions and hardware limitations corrupted the incoming signal. If the model is trained mainly on pristine images with smooth gradients, it struggles to generalize to lower-quality images taken on budget devices because it hasn't learned to extract patterns with abrupt transitions or excess noise. Conversely, when the model does encounter more low-qaulity images, it risks overfitting to hardware artifacts. A neural network with high capacity can easily learn the highly-specific noise pattern instead of the actual geometric structures of plant lesions. 
+Since a higher over/under exposure ratio (or clipping ratio) means the signal is more clipped, the opposite ratio $1- R_{\text{clip}}$ is how un-clipped the signal is. Thus, $1- R_{\text{clip}}$ is porportional to the exposure index. Higher luminance entropy means the ligting carries more detail, so it is also directly porportional to the exposure index. However, if the brightness levels are uniformly distributed (each brightness level shows up the same number of times as the others in the image), the probability $p(b)$ of any brightness level $b$ would be like rolling a fair dice with 256 possible states, $\frac{1}{256}. Mathematically, this makes the luminance entropy $E = 8$, so the maximum exposure index with the largest clipping ratio of $1.0$ would be $8$. To normalize it, a constant $0.125$ is included, and thus the exposure index EI is defined as:
 
+$EI = \frac{1}{8}(1-R_{\text{clip}})E$
 
+Raw EI scores are min-max scaled so that relative differences are exposed in a clean distribution:
+```python
+# min-max scaling to exaggerate relative differences
+eis = (eis - eis.min()) / (eis.max() - eis.min())
+eis = np.clip(eis, 0.0, 1.0)
+```
 
 
 
