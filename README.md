@@ -73,7 +73,7 @@ The blurred image is produced through a convolution with a Guassian kernel that 
 
 Low-end budget sensors have a narrow dynamic range. This means that in bright sunlight, highlights are clipped to pure white pixels (255), and in shadows, details are crushed into pure black (0). When an image is clipped like this, the transitions are abrupt/sharp and local pixels become more uniform. This increased unfiromity results in almost no difference between coordinates, causing certain localized gradients to vanish and lower the Laplacian variance score. High-end flagship sensors use multi-frame High Dynamic Range (HDR) processing, which takes several photos at different exposure values. Short exposures can capture the textures of bright highlights without oversaturating them and medium or long exposures can capture shadows and fine details within darker regions by oversaturing the entire image. These RAW frames are not stacked directly due to temporal differences. First, the medium-exposure image is chosen as the reference frame and a predetermined filter slides over pixel patches and calculates a mathematical similarity score with each frame across the temporal dimension, selecting which parts of that frame should overlap with the reference frame. This results in a highly engineered output image that contains relatively sharp shadows and highlights with minimal noise. Now the transitions between pixels become much more continuous, increasing the Laplacian variance. 
 
-To eliminate a possible performance delta between device tiers and prevent the diagnostic model(s) from overfitting to hardware noise, the Fairness Governor implements an unsupervised exposure index EI. This quantifies how severely localizing lighting conditions and hardware limitations corrupted the incoming signal. If the model is trained mainly on pristine images with smooth gradients, it struggles to generalize to lower-quality images taken on budget devices because it hasn't learned to extract patterns with abrupt transitions or excess noise. Conversely, when the model does encounter more low-qaulity images, it risks overfitting to hardware artifacts. A neural network with high capacity can easily learn the highly-specific noise pattern instead of the actual geometric structures of plant lesions. The EI is a fusion of a over/under exposure ratio and luminance entropy.
+To eliminate a possible performance delta between device tiers and prevent the diagnostic model(s) from overfitting to hardware noise, the Fairness Governor implements an unsupervised exposure index EI. This quantifies how severely localizing lighting conditions and hardware limitations corrupted the incoming signal. If the model is trained mainly on pristine images with smooth gradients, it struggles to generalize to lower-quality images taken on budget devices because it hasn't learned to extract patterns with abrupt transitions or excess noise. Conversely, when the model does encounter more low-qaulity images, it risks overfitting to hardware artifacts. A neural network with high capacity can easily learn the highly-specific noise pattern instead of the actual geometric structures of plant lesions. The EI combines over/under exposure ratio and luminance entropy.
 
 RGB color channels do not account for luminance, so a luminance-focused color space like LAB, in which the L channel respresents pure brightness or luminance independent of color, is used. Let $L(x,y) \in [0, 255]$ be the luminance value of a pixel. An exposure histogram $H$ can be constructed, which counts the frequency of each brightness level across all N pixels:
 
@@ -106,6 +106,14 @@ eis = (eis - eis.min()) / (eis.max() - eis.min())
 eis = np.clip(eis, 0.0, 1.0)
 ```
 
+A fairness vector is constructed by the column-wise stacking of each metric, and there exists three quality thresholds for each metric. The qaulity thresholds were computed empirically from the flagship images and simulated images:
 
-
-
+```python
+metrics = ["Blurriness", "Graininess", "Exposure Index (EI)"]
+for i, name in enumerate(metrics):
+    print(name)
+    print(f"Good images (min / max): {good_imgs[:, i].min()} / {good_imgs[:, i].max()}")
+    print(f"Bad images (min / max): {bad_imgs[:, i].min()} / {bad_imgs[:, i].max()}")
+    # mid-point threshold
+    print(f"threshold: {(good_imgs[:, i].min() + bad_imgs[:, i].max()) / 2}")
+```
