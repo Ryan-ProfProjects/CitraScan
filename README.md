@@ -101,7 +101,6 @@ $EI = \frac{1}{8}(1-R_{\text{clip}})E$
 
 Raw EI scores are min-max scaled so that relative differences are exposed in a clean distribution:
 ```python
-# min-max scaling to exaggerate relative differences
 eis = (eis - eis.min()) / (eis.max() - eis.min())
 eis = np.clip(eis, 0.0, 1.0)
 ```
