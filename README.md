@@ -113,6 +113,5 @@ for i, name in enumerate(metrics):
     print(name)
     print(f"Good images (min / max): {good_imgs[:, i].min()} / {good_imgs[:, i].max()}")
     print(f"Bad images (min / max): {bad_imgs[:, i].min()} / {bad_imgs[:, i].max()}")
-    # mid-point threshold
     print(f"threshold: {(good_imgs[:, i].min() + bad_imgs[:, i].max()) / 2}")
 ```
