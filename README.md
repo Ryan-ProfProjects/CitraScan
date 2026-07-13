@@ -105,7 +105,7 @@ We approximate the signal power by the mean squared luminance:
 $P_{\text{signal}} = \frac{1}{N} \sum_{i=1}^N x^2_i$
 where $x_i$ denotes the luminance of the i-th pixel.
 The noise power is approximated by the luminance variance:
-$P_{\text{noise}} = \text{1}{N} \sum_{i=1}^N (x_i - \bar{x})^2$
+$P_{\text{noise}} = \frac{1}{N} \sum_{i=1}^N (x_i - \bar{x})^2$
 where the mean image luminance $\bar{x}$ is computed as:
 
 $\bar{x} = \frac{1}{N} \sum_{i=1}^N x_i$
