@@ -97,7 +97,28 @@ $N_{\text{highlight}} = \sum_{i=250}^{255} H(i), \quad \quad R_{\text{highlight}
 These metrics quantify the proportion of pixels that lose recoverable detail due to saturation at either intensity extreme.
 
 ### Signal-to-Noise Ratio (SNR)
-The SNR is defined as the ratio of signal power to noise power, in which signal power represents the average squared 
+The SNR is defined as the ratio of signal power to noise power, this metric estimates the amount of useful visual information contained in an image relative to its overall intensity variation. Images with a high SNR generally contain cleaner distinguishable leaf structures, while low-SNR images tend to show increased sensor noise or poor imaging conditions that can reduce diagnostic reliability.
+
+Assuming the luminance image consists of a signal component and noise component: $I(x, y) = S(x, y) + N(x, y)$
+We approximate the signal power by the mean squared luminance:
+
+$P_{\text{signal}} = \frac{1}{N} \sum_{i=1}^N x^2_i$
+where $x_i$ denotes the luminance of the i-th pixel.
+The noise power is approximated by the luminance variance:
+$P_{\text{noise}} = \text{1}{N} \sum_{i=1}^N (x_i - \bar{x})^2$
+where the mean image luminance $\bar{x}$ is computed as:
+
+$\bar{x} = \frac{1}{N} \sum_{i=1}^N x_i$
+
+The estimated SNR can thus be computed as:
+
+$\text{SNR} = \frac{P_{\text{signal}}}{P_{\text{noise}}}$
+
+To make the data more concrete, we estimate in decibels (dB) to convert the linear scale to a logarithmic one, representing the relative strength of this signal to its noise:
+
+$\text{SNR} = 10\log_{10}\left(\frac{P_{\text{signal}}}{P_{\text{noise}}}\right)$
+
+Within CitraScan, this metric is not intended to measure the true physical sensor SNR. Instead it helps qauntify whether the captured leaf image contains sufficient visual information for reliable disease classification.
 
 
 ### Governing Lighting Conditions
