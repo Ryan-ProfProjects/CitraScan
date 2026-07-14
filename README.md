@@ -84,7 +84,7 @@ where $I$ is the indicator function that equals 1 if the pixel's brightness $L_k
 
 The fairness governor utilizes an under exposure ratio $R_{\text{shadow}}$ computed from this histogram $H$. It counts the number of pixels $N_{\text{shadow}}$ that are clipped close to the extreme 0, range [0, 2]:
 
-$N_{\text{shadow}} = \sum_{i=0}^2 H(i)$
+$N_{\text{shadow}} = \sum_{i=0}^1 H(i)$
 
 The ratio of the number of clipped pixels to the total number of pixels gives us a metric for how under exposed/saturated the image is:
 
@@ -92,7 +92,7 @@ $R_{\text{shadow}} = \frac{N_{\text{shadow}}}{N}$
 
 An over exposure ratio $R_{\text{highlight}}$ is computed similarly, counting the number of pixels $N_{\text{highlight}}$ that are clipped close to the extreme 100, range [98, 100]:
 
-$N_{\text{highlight}} = \sum_{i=98}^{100} H(i), \quad \quad R_{\text{highlight}} = \frac{N_{\text{highlight}}}{N}$
+$N_{\text{highlight}} = \sum_{i=99}^{100} H(i), \quad \quad R_{\text{highlight}} = \frac{N_{\text{highlight}}}{N}$
 
 These metrics quantify the proportion of pixels that lose recoverable detail due to saturation at either intensity extreme. Luminance variance is also computed:
 
