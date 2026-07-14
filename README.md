@@ -120,6 +120,64 @@ $\text{SNR} = 10\log_{10}\left(\frac{P_{\text{signal}}}{P_{\text{noise}}}\right)
 
 Within CitraScan, this metric is not intended to measure the true physical sensor SNR. Instead it helps qauntify whether the captured leaf image contains sufficient visual information for reliable disease classification.
 
+### Foreground Complexity - Edge Density
+It's important that this metric is purely mathematical and model independent, as we want to ensure the fairness metrics don't depend on model performance. When leaf coverage is low, it means the image contains more foreground or other non-essential elements to the classification, possibly reducing diagnostic accuracy and confidence. Since it is difficult to measure leaf coverage purly mathematically, and equally challenging to do the same for foreground elements, we propose an Edge Density score that utilizes an edge detector called Canny.
+
+Camera sensors can inherently introduce noise. Because edge detection relies on finding sharp transitions between pixels, noise can mimic a tiny edge. Thus, Canny utilizes an algorithm that applies a convolutional Gaussian filter to smooth out the image. Next, another convolutional filter, the Sobel, computes a horizontal and vertical gradient for each pixel patch that the kernel slides over. Note that it does not compute the second derivative like th Lapclacian, it computes the first derivative:
+
+(a) Horizontal gradient 
+$G_x \approx I(x+1,y) - I(x,y)$
+
+We use the central difference instead of forward/backward because we want the differences to accumulate in the center, we value symmetry:
+
+$G_x \approx I(x-1,y) - I(x+1,y)$
+
+Realize this can be written as a linear combination:
+
+$$G_x = (1)I(x-1,y) + (0)I(x,y) + (-1)I(x+1, y)$$
+
+$$G_x = I \cdot \begin{bmatrix} 1 & 0 & -1\end{bmatrix}$$
+
+(b) Vertical gradient
+
+$$G_y \approx I(x,y-1) - I(x,y+1)$$
+
+$$G_y \approx (1)I(x,y-1) + (0)I(x, y) + (-1)I(x,y+1)$$
+
+$$G_y = I \cdot \begin{bmatrix} 1\\
+0\\
+-1\end{bmatrix}$$
+
+A binomial approximation of a Guassian filter is used for smoothing:
+
+$$\begin{bmatrix}
+1\\
+2\\
+1\\
+\end{bmatrix}$$
+
+The Sobel filter is computed from a outer product between the smoothing vector and difference vector:
+
+$$\begin{bmatrix}
+1\\
+2\\
+1\\
+\end{bmatrix} \cdot \begin{bmatrix} 1 & 0 & -1\end{bmatrix} =  
+\begin{bmatrix}
+-1 & -2 & -1\\
+0 & 0 & 0\\
+1 & 2 & 1
+\end{bmatrix}
+
+This edge map $E(x, y)$ uses Canny to detect edges in the grayscale luminance image I(x,y). We do not consider color and consider intensity via luminance. The edge density is:
+
+$$E(x, y) = \begin{cases} 1 & \text{if an edge is detected}\\ 
+0 &  \text{otherwise} \end{cases}$$
+
+$F_{\text{edge}} = \frac{1}{HW} \sum_{x=1}^H \sum_{y=1}^W E(x,y)$
+
+where $H$ and $W$ are the image height and width, so $HW$ is the resolution of the grayscale luminance image. This produces a score between 0 and 1. Low edge density suggests that the image has a smooth background, single dominant object, and little visual clutter. High edge density suggests there may be many overlapping leaves, branches, weeds, textured background, resulting in potentially more difficult segmention. 
+
 
 ### Governing Lighting Conditions
 
