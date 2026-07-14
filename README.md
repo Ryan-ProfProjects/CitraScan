@@ -195,6 +195,7 @@ $F_{\text{edge}} = \frac{1}{HW} \sum_{x=1}^H \sum_{y=1}^W E(x,y)$
 
 where $H$ and $W$ are the image height and width, so $HW$ is the resolution of the grayscale luminance image. This produces a score between 0 and 1. Low edge density suggests that the image has a smooth background, single dominant object, and little visual clutter. High edge density suggests there may be many overlapping leaves, branches, weeds, textured background, resulting in potentially more difficult segmention. 
 
+For normalization, we need to consider the maximum posisble values. So we would consider all the pixels in patch aligning with the positive values in the kernel having maximum luminance (1) while all the pixels aligning with the negative values in the kernel having minimum luminance (0). This results in a sum of 1 + 2 + 1 = 4. Thus, we normalize each kernel by 4.
 
 ### Governing Lighting Conditions
 
