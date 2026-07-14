@@ -121,9 +121,12 @@ $\text{SNR} = 10\log_{10}\left(\frac{P_{\text{signal}}}{P_{\text{noise}}}\right)
 Within CitraScan, this metric is not intended to measure the true physical sensor SNR. Instead it helps qauntify whether the captured leaf image contains sufficient visual information for reliable disease classification.
 
 ### Foreground Complexity - Edge Density
-It's important that this metric is purely mathematical and model independent, as we want to ensure the fairness metrics don't depend on model performance. When leaf coverage is low, it means the image contains more foreground or other non-essential elements to the classification, possibly reducing diagnostic accuracy and confidence. Since it is difficult to measure leaf coverage purly mathematically, and equally challenging to do the same for foreground elements, we propose an Edge Density score that utilizes an edge detector called Canny.
+It's important that this metric is purely mathematical and model independent, as we want to ensure the fairness metrics don't depend on model performance. When leaf coverage is low, it means the image contains more foreground or other non-essential elements to the classification, possibly reducing diagnostic accuracy and confidence. Since it is difficult to measure leaf coverage purly mathematically, and equally challenging to do the same for foreground elements, we propose an Edge Density score that utilizes an edge detector called Canny. The edge map $E(x, y)$ uses Canny to detect edges in the grayscale luminance image I(x,y):
 
-Camera sensors can inherently introduce noise. Because edge detection relies on finding sharp transitions between pixels, noise can mimic a tiny edge. Thus, Canny utilizes an algorithm that applies a convolutional Gaussian filter to smooth out the image. Next, another convolutional filter, the Sobel, computes a horizontal and vertical gradient for each pixel patch that the kernel slides over. Note that it does not compute the second derivative like th Lapclacian, it computes the first derivative:
+$$E(x, y) = \begin{cases} 1 & \text{if an edge is detected}\\ 
+0 &  \text{otherwise} \end{cases}$$
+
+Camera sensors can inherently introduce noise. Because edge detection relies on finding sharp transitions between pixels, noise can mimic a tiny edge. Thus, Canny utilizes an algorithm that applies a convolutional Gaussian filter to smooth out the image. Next, another convolutional filter, the Sobel, computes a horizontal and vertical gradient for each pixel patch that the kernel slides over. Note that it does not compute the second derivative like the Lapclacian, it computes the first derivative:
 
 (a) Horizontal gradient 
 $G_x \approx I(x+1,y) - I(x,y)$
@@ -156,7 +159,7 @@ $$\begin{bmatrix}
 1\\
 \end{bmatrix}$$
 
-The Sobel filter is computed from a outer product between the smoothing vector and difference vector:
+To find vertical edges, we want to minimize noise vertically, so the smoothing is applied vertically. Vertical edges are edges that vary horizontally, as they appear as a uniform boundary vertically. Thus, this kernel must jointly compute the smoothing vertically and central difference horizontally, so the Sobel filter is computed from a outer product between the smoothing vector and difference vector.:
 
 $$\begin{bmatrix}
 1\\
@@ -164,15 +167,29 @@ $$\begin{bmatrix}
 1\\
 \end{bmatrix} \cdot \begin{bmatrix} 1 & 0 & -1\end{bmatrix} =  
 \begin{bmatrix}
--1 & -2 & -1\\
-0 & 0 & 0\\
+1 & 0 & -1\\
+2 & 0 & -2\\
+1 & 0 & -1
+\end{bmatrix}$$
+
+Likewise, a horizontal edge kernel will be computed from the outer product of a horizontal smoothing vector and a vertical central difference vector:
+
+$$\begin{bmatrix}
 1 & 2 & 1
-\end{bmatrix}
+\end{bmatrix} \cdot \begin{bmatrix} 1\\
+0\\
+-1\end{bmatrix} =  
+\begin{bmatrix}
+1 & 2 & 1\\
+0 & 0 & 0\\
+-1 & -2 & -1
+\end{bmatrix}$$
 
-This edge map $E(x, y)$ uses Canny to detect edges in the grayscale luminance image I(x,y). We do not consider color and consider intensity via luminance. The edge density is:
+Once these filters have both convolved independently with the image, there is a feature map of horizontal edges and a feature map of vertical edges. Remember these edges are essentially gradients of the smoothed out pixels. These feature maps are then combined into one by computing the L2 norm of the gradient, which is adding each squared pixel value and taking the square root of them:
 
-$$E(x, y) = \begin{cases} 1 & \text{if an edge is detected}\\ 
-0 &  \text{otherwise} \end{cases}$$
+$E(x, y) = G(x,y) = \sqrt{G_x(x, y)^2 + G_y(x, y)^2}$
+
+Now we can turn this into a binary edge mask with a certain threshold. This allows for the calculation of the edge density metric:
 
 $F_{\text{edge}} = \frac{1}{HW} \sum_{x=1}^H \sum_{y=1}^W E(x,y)$
 
