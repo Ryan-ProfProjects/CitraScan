@@ -76,25 +76,42 @@ Older flagships and modern budget phones can have a lot of traits in common. Old
 
 ### Highlight & Shadow Clipping
 
-RGB color channels do not account for luminance, so a luminance-focused color space like LAB, in which the L channel respresents pure brightness or luminance independent of color, is used. Let $L(x,y) \in [0, 255]$ be the luminance value of a pixel. An exposure histogram $H$ can be constructed, which counts the frequency of each brightness level across all N pixels:
+RGB color channels do not account for luminance, so a luminance-focused color space like CIELAB, in which the L channel respresents pure brightness or luminance independent of color, is used. Let $L(x,y) \in [0, 100]$ be the luminance value of a pixel. An exposure histogram $H$ can be constructed, which counts the frequency of each brightness level across all N pixels:
 
-$H(b) = \sum_{j=1}^N {I}(L_k = b) \ \text{for} \ b \in [0, 255]$
+$H(b) = \sum_{j=1}^N {I}(L_k = b) \ \text{for} \ b \in [0, 100]$
 
-where $I$ is the indicator function that equals 1 if the pixel's brightness $L_k$ matches the bin value $b$ and is 0 otherwise. N is the total number of pixels in the entire image. For any one specific brightness level like $b = 255$, the exposure histogram $H$ outputs the total pixel count for that brightness. As a whole, the histrogram reveals the count of all the unique brightnesses present across each pixel. 
+where $I$ is the indicator function that equals 1 if the pixel's brightness $L_k$ matches the bin value $b$ and is 0 otherwise. N is the total number of pixels in the entire image. For any one specific brightness level like $b = 100$, the exposure histogram $H$ outputs the total pixel count for that brightness. As a whole, the histrogram reveals the count of all the unique brightnesses present across each pixel. 
 
-The fairness governor utilizes an under exposure ratio $R_{\text{shadow}}$ computed from this histogram $H$. It counts the number of pixels $N_{\text{shadow}}$ that are clipped close to the extreme 0, range [0, 5]:
+The fairness governor utilizes an under exposure ratio $R_{\text{shadow}}$ computed from this histogram $H$. It counts the number of pixels $N_{\text{shadow}}$ that are clipped close to the extreme 0, range [0, 2]:
 
-$N_{\text{shadow}} = \sum_{i=0}^5 H(i)$
+$N_{\text{shadow}} = \sum_{i=0}^2 H(i)$
 
 The ratio of the number of clipped pixels to the total number of pixels gives us a metric for how under exposed/saturated the image is:
 
 $R_{\text{shadow}} = \frac{N_{\text{shadow}}}{N}$
 
-An over exposure ratio $R_{\text{highlight}}$ is computed similarly, counting the number of pixels $N_{\text{highlight}}$ that are clipped close to the extreme 255, range [250, 255]:
+An over exposure ratio $R_{\text{highlight}}$ is computed similarly, counting the number of pixels $N_{\text{highlight}}$ that are clipped close to the extreme 100, range [98, 100]:
 
-$N_{\text{highlight}} = \sum_{i=250}^{255} H(i), \quad \quad R_{\text{highlight}} = \frac{N_{\text{highlight}}}{N}$
+$N_{\text{highlight}} = \sum_{i=98}^{100} H(i), \quad \quad R_{\text{highlight}} = \frac{N_{\text{highlight}}}{N}$
 
-These metrics quantify the proportion of pixels that lose recoverable detail due to saturation at either intensity extreme.
+These metrics quantify the proportion of pixels that lose recoverable detail due to saturation at either intensity extreme. Luminance variance is also computed:
+
+```python
+def exposure_metrics(img):
+    N = img[0].numel()
+    L = rgb2lab_l(img)
+    H = torch.histc(L, bins=100, min=0.0, max=100.0)
+    
+    N_s = H[0:2].sum()
+    R_s = (N_s / N).item()
+
+    N_h = H[98:100].sum()
+    R_h = (N_h / N).item()
+    
+    Lvar = torch.std(L).item()
+    
+    return {"shadow clipping": R_s, "highlight clipping": R_h, "luminance variance": Lvar}
+```
 
 ### Signal-to-Noise Ratio (SNR)
 The SNR is defined as the ratio of signal power to noise power, this metric estimates the amount of useful visual information contained in an image relative to its overall intensity variation. Images with a high SNR generally contain cleaner distinguishable leaf structures, while low-SNR images tend to show increased sensor noise or poor imaging conditions that can reduce diagnostic reliability.
