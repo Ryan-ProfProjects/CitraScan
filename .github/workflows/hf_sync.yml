@@ -13,9 +13,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sync to Hugging Face
-        uses: huggingface/hub-sync@v0.1.0
-        with:
-          github_repo_id: ${{ github.repository }}
-          huggingface_repo_id: RyanAI/CitraScan 
-          hf_token: ${{ secrets.HF_TOKEN }}
+      - name: Native Git Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          git remote add hf https://x-access-token:$HF_TOKEN@huggingface.co/spaces/RyanAI/CitraScan
+          
+          git push --force hf main
