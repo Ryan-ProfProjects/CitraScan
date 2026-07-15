@@ -22,4 +22,4 @@ jobs:
           
           git remote add hf https://x-access-token:$HF_TOKEN@huggingface.co/spaces/RyanAI/CitraScan
           
-          git push --force hf main
+          git push --force hf HEAD:main
