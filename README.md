@@ -3,7 +3,7 @@ A hardware-agnostic computer vision pipeline designed to democratize early-warni
 
 Imagine your entire livelihood is on the line because a deadly disease is destroying your orange grove. You pull out your smartphone to use a disease-detection app, but the AI fails because the image is blurry, the lighting is poor, or the leaf isn’t perfectly framed. Today’s agricultural AI is often trained on clean ideal images that don’t reflect the messy conditions of real farms. At CitraScan, we are providing open-source data so that AI models can learn to perform reliably in the field. Our mission is to ensure cutting-edge diagnostics belong to the farmers who need it most, regardless of the smartphone in their pocket.
 
-The CitraScan pipeline evaluates incoming data with an unsupervised algorithmic data fairness governor. Multiple metrics are leveraged to account for blurriness, resolution, lighting conditions, and symptom positioning in a structured Fairness Vector. 
+The CitraScan pipeline evaluates incoming data with an unsupervised algorithmic data reliability governor. Multiple metrics are leveraged to account for blurriness, resolution, lighting conditions, and symptom positioning in a structured Reliability Vector. 
 
 ### Blurriness
 
@@ -82,7 +82,7 @@ $H(b) = \sum_{j=1}^N {I}(L_k = b) \ \text{for} \ b \in [0, 100]$
 
 where $I$ is the indicator function that equals 1 if the pixel's brightness $L_k$ matches the bin value $b$ and is 0 otherwise. N is the total number of pixels in the entire image. For any one specific brightness level like $b = 100$, the exposure histogram $H$ outputs the total pixel count for that brightness. As a whole, the histrogram reveals the count of all the unique brightnesses present across each pixel. 
 
-The fairness governor utilizes an under exposure ratio $R_{\text{shadow}}$ computed from this histogram $H$. It counts the number of pixels $N_{\text{shadow}}$ that are clipped close to the extreme 0, range [0, 2]:
+The reliability governor utilizes an under exposure ratio $R_{\text{shadow}}$ computed from this histogram $H$. It counts the number of pixels $N_{\text{shadow}}$ that are clipped close to the extreme 0, range [0, 2]:
 
 $N_{\text{shadow}} = \sum_{i=0}^1 H(i)$
 
@@ -138,7 +138,7 @@ $\text{SNR} = 10\log_{10}\left(\frac{P_{\text{signal}}}{P_{\text{noise}}}\right)
 Within CitraScan, this metric is not intended to measure the true physical sensor SNR. Instead it helps qauntify whether the captured leaf image contains sufficient visual information for reliable disease classification.
 
 ### Foreground Complexity - Edge Density
-It's important that this metric is purely mathematical and model independent, as we want to ensure the fairness metrics don't depend on model performance. When leaf coverage is low, it means the image contains more foreground or other non-essential elements to the classification, possibly reducing diagnostic accuracy and confidence. Since it is difficult to measure leaf coverage purly mathematically, and equally challenging to do the same for foreground elements, we propose an Edge Density score that utilizes an edge detector called Canny. The edge map $E(x, y)$ uses Canny to detect edges in the grayscale luminance image I(x,y):
+It's important that this metric is purely mathematical and model independent, as we want to ensure the reliability metrics don't depend on model performance. When leaf coverage is low, it means the image contains more foreground or other non-essential elements to the classification, possibly reducing diagnostic accuracy and confidence. Since it is difficult to measure leaf coverage purly mathematically, and equally challenging to do the same for foreground elements, we propose an Edge Density score that utilizes an edge detector called Canny. The edge map $E(x, y)$ uses Canny to detect edges in the grayscale luminance image I(x,y):
 
 $$E(x, y) = \begin{cases} 1 & \text{if an edge is detected}\\ 
 0 &  \text{otherwise} \end{cases}$$
