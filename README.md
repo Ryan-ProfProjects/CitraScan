@@ -226,3 +226,10 @@ where $\text{Flip}_{H}$ reflects features horizontally across the width axis ($W
 The resulting Asymmetry Map $\Delta A$ is concatenated directly with the original feature tensor:
 
 $$F_{\text{augmented}} = \text{Concat}([F, \Delta A], \text{dim}=1)$$
+
+```python
+flipped = torch.flip(x_masked, dims=[-1])
+asym_map = torch.abs(x_masked - flipped) # if symmetrical, values largee
+x_atten = torch.cat([x_masked, asym_map], dim=1)
+x_atten = self.asym_bottleneck(x_atten)
+```
