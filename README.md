@@ -223,6 +223,6 @@ $$\Delta A = |F - \text{Flip}_{H}(F)|$$
 
 where $\text{Flip}_{H}$ reflects features horizontally across the width axis ($W$). 
 
-The resulting Asymmetry Map ($\Delta A$) is concatenated directly with the original feature tensor:
+The resulting Asymmetry Map $\Delta A$ is concatenated directly with the original feature tensor:
 
 $$F_{\text{augmented}} = \text{Concat}([F, \Delta A], \text{dim}=1)$$
