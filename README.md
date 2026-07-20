@@ -229,7 +229,7 @@ $$F_{\text{augmented}} = \text{Concat}([F, \Delta A], \text{dim}=1)$$
 
 ```python
 flipped = torch.flip(x_masked, dims=[-1])
-asym_map = torch.abs(x_masked - flipped) # if symmetrical, values largee
+asym_map = torch.abs(x_masked - flipped) # if symmetrical, values large
 x_atten = torch.cat([x_masked, asym_map], dim=1)
 x_atten = self.asym_bottleneck(x_atten)
 ```
