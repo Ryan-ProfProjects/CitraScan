@@ -145,7 +145,6 @@ def to_fairvec(img):
     ))
 
     return fair_vec
-    
 
 def score(fair_vec, reference_good):
     """
