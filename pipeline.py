@@ -1,10 +1,9 @@
 import torch
 import torchvision
-import glob
-import cv2
 import numpy as np
-# from modelwyolo import Segmentor, val_test_transforms
-# from PIL import Image
+import torchvision.transforms as transforms
+from PIL import Image
+import os
 
 def bgr2gray(img):
     w = torch.tensor([0.1140, 0.5870, 0.2989]).view(3, 1, 1) # across channel dim
@@ -15,7 +14,7 @@ def rgb2lab_l(img):
     r,g,b = img[0], img[1], img[2]
     y = 0.2126 * r + 0.7152 * g + 0.0722 * b
     l_channel  = torch.where(y > 0.008856, 116.0 * torch.pow(y, 1/3) - 16.0, 903.3 * y)
-    return torch.clamp(l_channel, 0.0, 100.0) # CIELAB lightness range
+    return torch.clamp(l_channel, 0.0, 100.0)
 
 def blurriness(img):
     # bgr to grayscale
@@ -80,59 +79,10 @@ def edge_density(img, threshold=0.1):
     
     return E.mean().item()
 
-pths = glob.glob('seed_data/img_*.jpg')
-imgs = []
-bimgs = []
-egs = []
-grains = []
-blurs = []
-snrs = []
-exposurems = []
-shadow_clips = []
-highlight_clips = []
-lum_vars = []
-for pth in pths:
-    img = cv2.imread(pth)
-    img = torch.Tensor(img) / 255.0
-    img = img.permute(2, 0, 1)
-    grains.append(graininess(img))
-    blurs.append(blurriness(img))
-    egs.append(edge_density(img))
-    snrs.append(SNR(img))
-    exp_data = exposure_metrics(img)
-    shadow_clips.append(exp_data["shadow clipping"])
-    highlight_clips.append(exp_data["highlight clipping"])
-    lum_vars.append(exp_data["luminance variance"])
-    imgs.append(img)
-
-imgs = np.array(imgs)
-fair_vec = np.stack((
-    blurs, 
-    grains, 
-    egs, 
-    snrs, 
-    shadow_clips, 
-    highlight_clips, 
-    lum_vars
-), axis=1)
-
-# print(fair_vec)
-
-good_imgs = fair_vec[:24, :]
-bad_imgs = fair_vec[24:, :]
-
-thresholds = {"blur": np.percentile(good_imgs[:, 0], 95),
-              "grain": np.percentile(good_imgs[:, 1], 95),
-              "edge": np.percentile(good_imgs[:, 2], 95),
-              "snr": np.percentile(good_imgs[:, 3], 5),
-              "shadow": np.percentile(good_imgs[:, 4], 95),
-              "highlight": np.percentile(good_imgs[:, 5], 95),
-              "lumvar": np.percentile(good_imgs[:, 6], 5)}
-
-def to_fairvec(img):
+def to_relvec(img):
     if img.max() > 1.0:
         img = img.float() / 255.0
-    
+        
     em = exposure_metrics(img)
     fair_vec = np.array((
         blurriness(img), 
@@ -149,7 +99,7 @@ def to_fairvec(img):
 
 def score(fair_vec, reference_good):
     """
-    Normalizes the fairness vector into a single fairness score between 0.0 and 1.0.
+    normalizes reliability vector into reliability score between 0 and 1
     """
 
     blur, grain, edge, snr, shadow, highlight, lumvar = fair_vec
@@ -184,8 +134,37 @@ def score(fair_vec, reference_good):
     )
     fairness_score = 1.0 - weighted_penalty
     
-    return float(np.clip(fairness_score, 0.0, 1.0))
+    raw_score = float(np.clip(fairness_score, 0.0, 1.0))
+    
+    # return get_user_friendly_score(raw_score)
+    return raw_score * 100
 
-ref = np.mean(good_imgs, axis=0)
-print(ref)
-print(score(fair_vec[47], ref))
+def get_user_friendly_score(raw_score):
+    if raw_score >= 0.90:
+        return float(90 + (raw_score - 0.90) * 100)
+    elif raw_score >= 0.80:
+        return float(60 + (raw_score - 0.80) * 300)
+    else:
+        return max(0, float((raw_score / 0.80) * 60))
+
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+test = []
+for img_name in os.listdir("train/images"):
+    
+    if img_name.startswith('.'):
+        continue
+    if not img_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+        continue
+    
+    pth = os.path.join("train/images", img_name)
+    img = Image.open(pth).convert('RGB')
+    test.append(transform(img))
+
+test_vecs = [to_relvec(test_img) for test_img in test]
+ref = np.mean(test_vecs, axis=0)
+# print(score(to_fairvec(test[0]), ref))
