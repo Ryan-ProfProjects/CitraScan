@@ -22,8 +22,8 @@ train_transforms = transforms.Compose([
     # transforms.RandomRotation(degrees=15),
     transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.1, hue=0.05),
     transforms.ToTensor(),
-    transforms.RandomErasing(p=0.3, scale=(0.02, 0.15), value='random'), # erase patches of image to mimic leaf damage/blocking shadows
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # ImageNet dataset constants for normalization
+    transforms.RandomErasing(p=0.3, scale=(0.02, 0.15), value='random'),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 val_test_transforms = transforms.Compose([
