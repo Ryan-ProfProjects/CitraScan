@@ -213,23 +213,3 @@ $F_{\text{edge}} = \frac{1}{HW} \sum_{x=1}^H \sum_{y=1}^W E(x,y)$
 where $H$ and $W$ are the image height and width, so $HW$ is the resolution of the grayscale luminance image. This produces a score between 0 and 1. Low edge density suggests that the image has a smooth background, single dominant object, and little visual clutter. High edge density suggests there may be many overlapping leaves, branches, weeds, textured background, resulting in potentially more difficult segmention. 
 
 For normalization, we need to consider the maximum posisble values. So we would consider all the pixels in patch aligning with the positive values in the kernel having maximum luminance (1) while all the pixels aligning with the negative values in the kernel having minimum luminance (0). This results in a sum of 1 + 2 + 1 = 4. Thus, we normalize each kernel by 4.
-
-### Bilateral Asymmetry Feature (BAF) Module
-Standard Vision Transformers and CNNs may struggle with citrus diagnostics because they can develop reliance on color or texture-based shortcuts by comparing these features in localized spatial regions without broader context. As a result, diseases such as Zinc or Manganese deficiency can be frequently misclassified as HLB due to shared leaf yellowing patterns. 
-
-Before convolutional layers take the masked inputs from the segmentor, feature tensors $F \in \mathbb{R}^{C \times H \times W}$ are first reflected horizontally to compute bilateral differences. The difference between the flipped feature map and original feature map quantifies how different the opposite lateral sides of the feature maps are, so a higher difference indicates asymmetric features while a lower difference indicates symmetric features, constructing a feature map only containing the asymmetric features:
-
-$$\Delta A = |F - \text{Flip}_{H}(F)|$$
-
-where $\text{Flip}_{H}$ reflects features horizontally across the width axis ($W$). 
-
-The resulting Asymmetry Map $\Delta A$ is concatenated directly with the original feature tensor:
-
-$$F_{\text{augmented}} = \text{Concat}([F, \Delta A], \text{dim}=1)$$
-
-```python
-flipped = torch.flip(x_masked, dims=[-1])
-asym_map = torch.abs(x_masked - flipped) # if symmetrical, values large
-x_atten = torch.cat([x_masked, asym_map], dim=1)
-x_atten = self.asym_bottleneck(x_atten)
-```
