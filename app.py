@@ -163,7 +163,6 @@ with gr.Blocks(title="Citrus Greening (HLB) Screening Tool") as demo:
             gr.Markdown("### Screening Results:")
             annotated_output = gr.Image(type="pil", label="Detection Output")
 
-            # UI results
             prediction_output = gr.Markdown()
             rec_output = gr.Markdown()
 
