@@ -3,7 +3,10 @@ A hardware-agnostic computer vision pipeline designed to democratize early-warni
 
 Imagine your entire livelihood is on the line because a deadly disease is destroying your orange grove. You pull out your smartphone to use a disease-detection app, but the AI fails because the image is blurry, the lighting is poor, or the leaf isn’t perfectly framed. Today’s agricultural AI is often trained on clean ideal images that don’t reflect the messy conditions of real farms. At CitraScan, we are providing open-source data so that AI models can learn to perform reliably in the field. Our mission is to ensure cutting-edge diagnostics belong to the farmers who need it most, regardless of the smartphone in their pocket.
 
-The CitraScan pipeline evaluates incoming data with an unsupervised algorithmic data reliability governor. Multiple metrics are leveraged to account for blurriness, resolution, lighting conditions, and symptom positioning in a structured Reliability Vector. 
+The CitraScan pipeline evaluates incoming data with an unsupervised algorithmic data reliability governor. Multiple metrics are leveraged to account for blurriness, resolution, lighting conditions, and symptom positioning in a structured Reliability Vector.
+
+Try CitraScan: https://huggingface.co/spaces/RyanAI/CitraScan-v2
+Visit the website: https://citrascan.org
 
 ### Blurriness
 
